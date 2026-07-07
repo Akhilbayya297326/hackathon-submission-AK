@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const helmet = require('helmet'); // SECURITY: HTTP Header protection
+const rateLimit = require('express-rate-limit'); // SECURITY: DDoS & Brute-force protection
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // Load environment variables
@@ -9,7 +11,24 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-// Middleware (Optimized for processing large multi-modal photo payloads)
+// --- SECURITY MIDDLEWARE ---
+// Secures Express apps by setting various HTTP headers
+app.use(helmet());
+
+// Rate limiting to prevent API abuse
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per window
+    message: { error: 'Too many requests, please try again later.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Apply rate limiter specifically to API routes
+app.use('/api/', apiLimiter);
+
+// --- STANDARD MIDDLEWARE ---
+// Optimized for processing large multi-modal photo payloads
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -19,13 +38,18 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // 1. Health check route
 app.get('/', (req, res) => {
-    res.send('Smart Bharat Serverless Backend is running perfectly!');
+    res.send('Smart Bharat Serverless Backend is running securely!');
 });
 
 // 2. Core AI Chat Route (Gemini 2.5 Flash)
 app.post('/api/chat', async (req, res) => {
     try {
         const userMessage = req.body.prompt;
+
+        // SECURITY: Strict Input Validation
+        if (!userMessage || typeof userMessage !== 'string') {
+            return res.status(400).json({ error: 'Invalid input. Prompt is required and must be text.' });
+        }
 
         const model = genAI.getGenerativeModel({
             model: "gemini-2.5-flash",
@@ -46,8 +70,10 @@ app.post('/api/chat', async (req, res) => {
 app.post('/api/analyze-image', async (req, res) => {
     try {
         const { imageBase64 } = req.body;
-        if (!imageBase64) {
-            return res.status(400).json({ error: 'No image data provided.' });
+
+        // SECURITY: Strict Input Validation
+        if (!imageBase64 || typeof imageBase64 !== 'string') {
+            return res.status(400).json({ error: 'No image data provided or format is invalid.' });
         }
 
         // Clean base64 string prefix schema if present

@@ -1,19 +1,36 @@
 {
-  "name": "backend",
+  "name": "smart-bharat-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Serverless API for the Smart Bharat AI civic platform",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "test": "jest"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "civic",
+    "ai",
+    "gemini",
+    "express",
+    "serverless",
+    "hackathon"
+  ],
+  "author": "B. Akhil",
+  "license": "MIT",
   "type": "commonjs",
+  "engines": {
+    "node": ">=18.x"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }
