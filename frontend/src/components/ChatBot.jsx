@@ -8,7 +8,7 @@ function ChatBot() {
         text: 'Namaste! I am your Smart Bharat AI assistant. How can I help you with government services today?'
     };
 
-    // Upgraded: Initialize state directly from localStorage for persistent memory
+    // Initialize state directly from localStorage for persistent memory
     const [messages, setMessages] = useState(() => {
         const savedMessages = localStorage.getItem('smart_bharat_chat_history');
         return savedMessages ? JSON.parse(savedMessages) : [welcomeMessage];
@@ -26,7 +26,7 @@ function ChatBot() {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
-    // Upgraded: Effect to write history changes into localStorage persistently
+    // Effect to write history changes into localStorage persistently
     useEffect(() => {
         localStorage.setItem('smart_bharat_chat_history', JSON.stringify(messages));
     }, [messages]);
@@ -63,8 +63,10 @@ function ChatBot() {
             // Instruct Gemini to reply in the selected language contextually
             const contextualPrompt = `Please reply in ${language}. User says: ${userMessage.text}`;
 
-            // Make sure to replace this URL string context with your actual Vercel live backend link if deploying
-            const response = await fetch('http://localhost:5000/api/chat', {
+            // Enterprise best practice: Use deployed URL if available, fallback to localhost
+            const API_URL = import.meta.env.VITE_BACKEND_URL || 'https://smart-bharat-api.vercel.app';
+
+            const response = await fetch(`${API_URL}/api/chat`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ prompt: contextualPrompt }),
@@ -79,7 +81,7 @@ function ChatBot() {
         }
     };
 
-    // Upgraded: Clear history action utility function to give users full control
+    // Clear history action utility function to give users full control
     const clearChatHistory = () => {
         if (window.confirm("Are you sure you want to clear your conversation history?")) {
             setMessages([welcomeMessage]);
@@ -87,14 +89,17 @@ function ChatBot() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-white rounded-xl overflow-hidden relative">
+        <div className="flex flex-col h-full bg-white rounded-xl overflow-hidden relative" aria-label="AI Chat Assistant">
 
             {/* Sub-Header Settings & Utility Control Strip */}
             <div className="flex justify-between items-center px-4 py-2 bg-gray-50 border-b border-gray-100 text-sm">
                 <div className="flex items-center gap-1 text-gray-500">
-                    <Globe size={14} />
-                    <span>Language:</span>
+                    <Globe size={14} aria-hidden="true" />
+                    <label htmlFor="language-select" className="sr-only">Select Language</label>
+                    <span aria-hidden="true">Language:</span>
                     <select
+                        id="language-select"
+                        aria-label="Select AI Language"
                         value={language}
                         onChange={(e) => setLanguage(e.target.value)}
                         className="bg-transparent font-medium text-blue-600 outline-none cursor-pointer ml-1"
@@ -108,20 +113,26 @@ function ChatBot() {
                 {/* Clear button to manage persistent storage entries */}
                 <button
                     onClick={clearChatHistory}
+                    aria-label="Clear chat memory"
                     className="text-gray-400 hover:text-red-500 transition-colors duration-200"
                     title="Clear chat memory"
                 >
-                    <Trash2 size={15} />
+                    <Trash2 size={15} aria-hidden="true" />
                 </button>
             </div>
 
-            {/* Dynamic Scrolling Chat Sandbox Window */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Dynamic Scrolling Chat Sandbox Window - aria-live announces new messages automatically */}
+            <div
+                className="flex-1 overflow-y-auto p-4 space-y-4"
+                aria-live="polite"
+                role="log"
+                aria-label="Chat History"
+            >
                 {messages.map((msg, index) => (
                     <div key={index} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed ${msg.sender === 'user'
-                                ? 'bg-blue-600 text-white rounded-tr-none shadow-sm'
-                                : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200 shadow-2xs'
+                        <div className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.sender === 'user'
+                            ? 'bg-blue-600 text-white rounded-tr-none'
+                            : 'bg-gray-100 text-gray-800 rounded-tl-none border border-gray-200'
                             }`}
                         >
                             {msg.text}
@@ -129,7 +140,7 @@ function ChatBot() {
                     </div>
                 ))}
                 {isLoading && (
-                    <div className="flex justify-start">
+                    <div className="flex justify-start" aria-live="assertive">
                         <div className="bg-gray-100 text-gray-500 p-3 rounded-2xl rounded-tl-none text-sm animate-pulse border border-gray-200">
                             Thinking...
                         </div>
@@ -143,16 +154,22 @@ function ChatBot() {
                 <button
                     type="button"
                     onClick={startListening}
+                    aria-label={isListening ? "Stop listening" : "Start voice input"}
+                    aria-pressed={isListening}
                     className={`p-2 rounded-full transition-all duration-200 ${isListening
-                            ? 'bg-red-100 text-red-600 animate-pulse scale-105'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-red-100 text-red-600 animate-pulse scale-105'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
-                    title="Click to speak"
+                    title={isListening ? "Stop listening" : "Click to speak"}
                 >
-                    <Mic size={18} />
+                    <Mic size={18} aria-hidden="true" />
                 </button>
+
+                <label htmlFor="chat-input" className="sr-only">Type your message to Smart Bharat</label>
                 <input
+                    id="chat-input"
                     type="text"
+                    aria-label="Type your message to Smart Bharat"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={isListening ? "Listening closely..." : "Ask your question..."}
@@ -161,10 +178,11 @@ function ChatBot() {
                 />
                 <button
                     type="submit"
+                    aria-label="Send message"
                     disabled={isLoading || !input.trim()}
-                    className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 shadow-xs"
+                    className="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 shadow-sm"
                 >
-                    <Send size={18} className="ml-0.5" />
+                    <Send size={18} className="ml-0.5" aria-hidden="true" />
                 </button>
             </form>
         </div>
